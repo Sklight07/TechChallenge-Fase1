@@ -15,11 +15,13 @@ namespace TechChallenge_Fase1.Controllers
 
         private readonly ILogger<CarteiraController> _logger;
         private readonly ICarteiraRepository _carteiraRepository;
+        private readonly IServiceBusRepository _serviceBusRepository;
 
-        public CarteiraController(ILogger<CarteiraController> logger, ICarteiraRepository carteiraRepository)
+        public CarteiraController(ILogger<CarteiraController> logger, ICarteiraRepository carteiraRepository, IServiceBusRepository serviceBusRepository)
         {
             _logger = logger;
             _carteiraRepository = carteiraRepository;
+            _serviceBusRepository = serviceBusRepository;
         }
 
         [Authorize]
@@ -116,6 +118,30 @@ namespace TechChallenge_Fase1.Controllers
                     return Ok("Ação vendida com sucesso");
                 else
                     return BadRequest("Não foi possível vender a ação");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Exception: {ex.Message}");
+                return BadRequest("Houve um erro durante a compra da ação");
+            }
+        }
+
+        [AllowAnonymous]
+        //[Authorize(Roles = $"{Permissao.Administrador}, {Permissao.UsuarioComum}")]
+        [HttpPost]
+        [Route(nameof(TesteServiceBus))]
+        public IActionResult TesteServiceBus([FromBody] CompraAcoesRequest compraAcoesRequest)
+        {
+            try
+            {
+                _logger.LogInformation($"Comprando {compraAcoesRequest.Quantidade} ações da: {compraAcoesRequest.IdAcao} para o usuário {compraAcoesRequest.IdUsuario}");
+
+                 _serviceBusRepository.EnviarMensagem(compraAcoesRequest);
+                return Ok("enviado com sucesso");
+                /*if (_carteiraRepository.ComprarAcoes(compraAcoesRequest.IdUsuario, compraAcoesRequest.IdAcao, compraAcoesRequest.Quantidade))
+                    return Ok("Ação comprada com sucesso");
+                else
+                    return BadRequest("Não foi possível comprar a ação");*/
             }
             catch (Exception ex)
             {

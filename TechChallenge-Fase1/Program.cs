@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -6,7 +7,9 @@ using System.Text;
 using TechChallenge_Fase1.Interfaces;
 using TechChallenge_Fase1.Logging;
 using TechChallenge_Fase1.Repository;
+using TechChallenge_Fase1.ServiceBus;
 using TechChallenge_Fase1.Services;
+using static MassTransit.Logging.LogCategoryName;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
+var configuration = builder.Configuration;//new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+var key = Encoding.ASCII.GetBytes(configuration.GetValue<string>("Secret"));
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -52,16 +58,13 @@ builder.Services.AddScoped<IAcaoRepository, AcaoRepository>();
 builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
 builder.Services.AddDbContext<ApplicationDbContext>(ServiceLifetime.Scoped);
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddTransient<IServiceBusRepository, EnvioConfiguration>();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderConfiguration
 {
     LogLevel = LogLevel.Information
 }));
-
-
-var configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
-var key = Encoding.ASCII.GetBytes(configuration.GetValue<string>("Secret"));
 
 builder.Services.AddAuthentication(authService => {
     authService.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -77,6 +80,15 @@ builder.Services.AddAuthentication(authService => {
         ValidateIssuer = false,
         ValidateAudience = false
     };
+});
+
+var servidor = configuration.GetSection("MassTransitAzure")["Conexao"] ?? string.Empty;
+builder.Services.AddMassTransit(x => 
+{
+    x.UsingAzureServiceBus((context, cfg) =>
+    {
+        cfg.Host(servidor);
+    });
 });
 
 var app = builder.Build();

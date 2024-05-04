@@ -138,7 +138,6 @@ namespace TechChallenge_Fase1.Repository
                     _dbContext.SaveChanges();
                     return true;
                 }
-
             }
             else{
                 carteira.Acoes.Add(new Ativos()
