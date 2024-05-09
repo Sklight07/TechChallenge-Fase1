@@ -136,12 +136,8 @@ namespace TechChallenge_Fase1.Controllers
             {
                 _logger.LogInformation($"Comprando {compraAcoesRequest.Quantidade} ações da: {compraAcoesRequest.IdAcao} para o usuário {compraAcoesRequest.IdUsuario}");
 
-                 _serviceBusRepository.EnviarMensagem(compraAcoesRequest);
+                _carteiraRepository.ComprarAcoes(compraAcoesRequest.IdUsuario, compraAcoesRequest.IdAcao, compraAcoesRequest.Quantidade, true); //_serviceBusRepository.ComprarAcoes(compraAcoesRequest);
                 return Ok("enviado com sucesso");
-                /*if (_carteiraRepository.ComprarAcoes(compraAcoesRequest.IdUsuario, compraAcoesRequest.IdAcao, compraAcoesRequest.Quantidade))
-                    return Ok("Ação comprada com sucesso");
-                else
-                    return BadRequest("Não foi possível comprar a ação");*/
             }
             catch (Exception ex)
             {

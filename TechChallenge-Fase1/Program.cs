@@ -59,6 +59,7 @@ builder.Services.AddScoped<ICarteiraRepository, CarteiraRepository>();
 builder.Services.AddDbContext<ApplicationDbContext>(ServiceLifetime.Scoped);
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddTransient<IServiceBusRepository, EnvioConfiguration>();
+//builder.Services.AddScoped<IServiceBusRepository, CarteiraRepository>();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderConfiguration

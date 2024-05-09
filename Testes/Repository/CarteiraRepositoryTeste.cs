@@ -49,7 +49,7 @@ namespace Testes.Repository
         [InlineData(3, 3, 9999)]
         public void ComprarAcoesTeste(int IdUsuario, int IdAcao, int quantidade)
         {
-            var teste = new Mock<ICarteiraRepository>().Setup(service => service.ComprarAcoes(IdUsuario, IdAcao, quantidade));
+            var teste = new Mock<ICarteiraRepository>().Setup(service => service.ComprarAcoes(IdUsuario, IdAcao, quantidade, false));
         }
 
         [Theory]

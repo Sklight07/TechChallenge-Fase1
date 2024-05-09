@@ -8,10 +8,12 @@ namespace TechChallenge_Fase1.Repository
     public class CarteiraRepository : ComumRepository<Carteira>, ICarteiraRepository
     {
         protected ApplicationDbContext _dbContext;
+        private readonly IServiceBusRepository _serviceBusRepository;
 
-        public CarteiraRepository(ApplicationDbContext dbContext) : base(dbContext)
+        public CarteiraRepository(ApplicationDbContext dbContext, IServiceBusRepository serviceBusRepository) : base(dbContext)
         {
             _dbContext = dbContext;
+            _serviceBusRepository = serviceBusRepository;
         }
 
         public void AdicionarValorCarteira(int id, float valor)
@@ -97,7 +99,7 @@ namespace TechChallenge_Fase1.Repository
             return true;
         }
 
-        public bool ComprarAcoes(int IdUsuario, int IdAcao, int quantidade)
+        public bool ComprarAcoes(int IdUsuario, int IdAcao, int quantidade, bool enviaServiceBus = false)
         {
             var carteira = GetCarteiraByUsuarioID(IdUsuario);
 
@@ -109,20 +111,48 @@ namespace TechChallenge_Fase1.Repository
             if(acao == null)
                 return false;
 
-            if (carteira.Saldo < (acao.Valor * quantidade))
-                return false;
-
-            if(carteira.Acoes != null)
+            if (enviaServiceBus)
             {
-                if (carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault() != null)
+                _serviceBusRepository.ComprarAcoes(new ComprarAcoesServiceBus
                 {
-                    carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault().Quantidade += quantidade;
-                    RemoverSaldo(carteira, carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault().Acao.Valor * quantidade);
-                    _dbContext.Entry(carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault()).State = EntityState.Modified;
-                    _dbContext.Entry(carteira).State = EntityState.Modified;
-                    _dbContext.Carteira.Update(carteira);
-                    _dbContext.SaveChanges();
-                    return true;
+                    Quantidade = quantidade,
+                    Carteira = carteira,
+                    Acao = acao
+                });
+
+                return true;
+            }
+            else
+            {
+                if (carteira.Saldo < (acao.Valor * quantidade))
+                    return false;
+
+                if (carteira.Acoes != null)
+                {
+                    if (carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault() != null)
+                    {
+                        carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault().Quantidade += quantidade;
+                        RemoverSaldo(carteira, carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault().Acao.Valor * quantidade);
+                        _dbContext.Entry(carteira.Acoes.Where(w => w.Acao.Id == IdAcao).FirstOrDefault()).State = EntityState.Modified;
+                        _dbContext.Entry(carteira).State = EntityState.Modified;
+                        _dbContext.Carteira.Update(carteira);
+                        _dbContext.SaveChanges();
+                        return true;
+                    }
+                    else
+                    {
+                        carteira.Acoes.Add(new Ativos()
+                        {
+                            Acao = acao,
+                            Quantidade = quantidade,
+                            DataCompra = System.DateTime.Now
+                        });
+
+                        RemoverSaldo(carteira, acao.Valor * quantidade);
+                        _dbContext.Carteira.Update(carteira);
+                        _dbContext.SaveChanges();
+                        return true;
+                    }
                 }
                 else
                 {
@@ -138,19 +168,6 @@ namespace TechChallenge_Fase1.Repository
                     _dbContext.SaveChanges();
                     return true;
                 }
-            }
-            else{
-                carteira.Acoes.Add(new Ativos()
-                {
-                    Acao = acao,
-                    Quantidade = quantidade,
-                    DataCompra = System.DateTime.Now
-                });
-
-                RemoverSaldo(carteira, acao.Valor * quantidade);
-                _dbContext.Carteira.Update(carteira);
-                _dbContext.SaveChanges();
-                return true;
             }
         }
 

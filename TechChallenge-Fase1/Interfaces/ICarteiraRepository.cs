@@ -8,7 +8,7 @@ namespace TechChallenge_Fase1.Interfaces
         Carteira GetCarteiraByUsuarioID(int id);
         void AdicionarValorCarteira(int id, float valor);
         bool RemoverValorCarteira(int id, float valor);
-        bool ComprarAcoes(int IdUsuario, int IdAcao, int quantidade);
+        bool ComprarAcoes(int IdUsuario, int IdAcao, int quantidade, bool enviaServiceBus = false);
         bool VenderAcoes(int IdUsuario, int IdAcao, int quantidade);
     }
 }
